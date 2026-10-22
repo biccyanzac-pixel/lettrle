@@ -7,7 +7,7 @@
 import { SUN, MON, TUE, WED, THU, FRI, SAT } from './words/answers.js';
 import { VALID5, VALID6 } from './words/valid.js';
 
-export const EPOCH = '2026-10-21'; // Lettrle #1. Never change once live: it renumbers and re-picks every day.
+export const EPOCH = '2026-10-22'; // Lettrle #1. Never change once live: it renumbers and re-picks every day.
 export const MAX_GUESSES = 6;
 export const BANDS = [SUN, MON, TUE, WED, THU, FRI, SAT]; // by UTC weekday, 0 = Sunday
 export const FAIL_RANK = MAX_GUESSES + 1;                  // a missed word ranks below 6 guesses

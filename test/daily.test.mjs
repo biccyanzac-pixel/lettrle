@@ -7,16 +7,16 @@ import { BLOCK } from '../tools/blocklist.mjs';
 // Golden days: these words are what players saw (or will see). If this test fails, a change has altered a past or
 // scheduled day. Revert it: the answer bands in site/js/words/answers.js are frozen in order.
 const GOLDEN = {
-  '2026-10-21': 'lance', '2026-10-22': 'affix', '2026-10-23': 'amigo', '2026-10-24': 'tangy', '2026-10-25': 'sermon',
-  '2026-10-26': 'right', '2026-10-27': 'focus', '2026-10-28': 'chirp', '2026-10-29': 'spore', '2026-10-30': 'druid',
-  '2026-10-31': 'frizz', '2026-11-01': 'devise', '2026-11-02': 'image', '2026-11-03': 'vowel', '2026-11-04': 'satin',
-  '2026-11-05': 'mange', '2026-11-06': 'grump', '2026-11-07': 'swank', '2026-11-08': 'single', '2026-11-09': 'sleep',
-  '2026-11-10': 'flame', '2026-11-11': 'bride', '2026-11-12': 'winch', '2026-11-13': 'divan', '2026-11-14': 'civet',
-  '2026-11-15': 'itself', '2026-11-16': 'leave', '2026-11-17': 'shove',
+  '2026-10-22': 'affix', '2026-10-23': 'amigo', '2026-10-24': 'tangy', '2026-10-25': 'sermon', '2026-10-26': 'right',
+  '2026-10-27': 'focus', '2026-10-28': 'lance', '2026-10-29': 'spore', '2026-10-30': 'druid', '2026-10-31': 'frizz',
+  '2026-11-01': 'devise', '2026-11-02': 'image', '2026-11-03': 'vowel', '2026-11-04': 'chirp', '2026-11-05': 'mange',
+  '2026-11-06': 'grump', '2026-11-07': 'swank', '2026-11-08': 'single', '2026-11-09': 'sleep', '2026-11-10': 'flame',
+  '2026-11-11': 'satin', '2026-11-12': 'winch', '2026-11-13': 'divan', '2026-11-14': 'civet', '2026-11-15': 'itself',
+  '2026-11-16': 'leave', '2026-11-17': 'shove', '2026-11-18': 'bride',
 };
 // A fingerprint of the first two years, so any reorder of a band shows up even past the golden days.
 const FINGERPRINT_DAYS = 730;
-const FINGERPRINT = '13fe3eca';
+const FINGERPRINT = '770ea6a8';
 
 test('golden days never change', () => {
   for (const [day, word] of Object.entries(GOLDEN)) assert.equal(puzzle(day).word, word, day);

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0c10" />
+    <title>Lettrle</title>
+    <meta name="description" content="Guess the day's word in six tries. Common words on Monday, rarer through the week, six letters on Sunday." />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%9F%A9%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="https://biccyanzac-pixel.github.io/jacob.gg/kit/jgg.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://biccyanzac-pixel.github.io/jacob.gg/kit/jgg.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <a class="wordmark" href="https://biccyanzac-pixel.github.io/jacob.gg/">jacob<span>.gg</span></a>
+      </header>
+
+      <section class="card" id="card">
+        <div class="card-top">
+          <span class="eyebrow" id="daynum">Lettrle</span>
+          <span class="eyebrow countdown" id="countdown"></span>
+        </div>
+
+        <!-- Intro: shown until the game starts -->
+        <div id="intro">
+          <p class="eyebrow challenge-label" id="level">Today's game</p>
+          <h1 class="prompt" id="intro-title">Guess the day's word</h1>
+          <p class="riddle-note" id="intro-note">
+            Six tries. After each guess the tiles show how close you are:
+            <span class="key-chip g">green</span> right letter, right place,
+            <span class="key-chip y">yellow</span> in the word but somewhere else,
+            <span class="key-chip x">grey</span> not in the word.
+          </p>
+          <p class="attempts-note">Fewest guesses wins. Ties go to the fastest.</p>
+
+          <form class="play" id="start-form">
+            <label class="field" id="name-field">
+              <span class="label">Your name</span>
+              <input id="name" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" enterkeyhint="go" placeholder="e.g. jacob" required />
+            </label>
+            <p class="playing-as" id="playing-as" hidden></p>
+            <p class="error" id="start-error" role="alert" hidden></p>
+            <button class="submit" id="start" type="submit">
+              <span class="submit-label" id="start-label">Start</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <p class="fineprint">The clock starts when you press Start.</p>
+          </form>
+        </div>
+
+        <!-- Playing -->
+        <div id="play" hidden>
+          <div class="round-head">
+            <p class="eyebrow challenge-label" id="play-label">Guess 1 of 6</p>
+            <p class="timer" id="timer" aria-live="off">0:00</p>
+          </div>
+          <div class="grid" id="grid" role="grid" aria-label="Your guesses"></div>
+          <p class="message" id="message" role="status" aria-live="polite"></p>
+          <div class="keyboard" id="keyboard" aria-label="Keyboard"></div>
+        </div>
+
+        <!-- Finished -->
+        <div class="attempts" id="done" hidden>
+          <p class="eyebrow" id="daily-score-caption">Today's result</p>
+          <p class="score" id="daily-score">3/6</p>
+          <p class="out-of" id="done-sub"></p>
+          <p class="answer-reveal" id="answer-reveal"></p>
+          <div class="grid small" id="done-grid" aria-hidden="true"></div>
+          <span id="room-score" hidden></span>
+          <button class="submit share" id="share" type="button">Share result</button>
+          <p class="fineprint" id="share-done" hidden>Copied to clipboard.</p>
+          <div id="rate"></div>
+          <p class="attempts-done" id="come-back">Come back tomorrow for a new word.</p>
+        </div>
+
+        <!-- A guess or the start that didn't reach the leaderboard. The game carries on; Retry sends what's missing. -->
+        <p class="error sync-error" id="sync-error" role="alert" hidden><span id="sync-error-text"></span>
+          <button class="retry" id="retry" type="button">Retry</button></p>
+      </section>
+
+      <section class="card board" id="board" hidden>
+        <div class="card-top">
+          <h2 class="eyebrow">Today's leaderboard</h2>
+          <span class="eyebrow" id="players"></span>
+        </div>
+        <ol class="rows" id="rows"></ol>
+        <p class="board-empty" id="board-empty" hidden>Nobody has finished yet today. Be the first.</p>
+        <p class="board-note" id="board-note" hidden></p>
+      </section>
+
+      <section class="card archive" id="archive">
+        <div class="card-top">
+          <h2 class="eyebrow">Archive: replay a past day</h2>
+        </div>
+        <p class="archive-note">
+          Replays go on a separate "played later" board and never change a day's original results.
+        </p>
+        <div class="archive-picker">
+          <button type="button" class="archive-browse" id="archive-browse">Browse archive</button>
+        </div>
+        <ul class="archive-list" id="archive-list" hidden></ul>
+      </section>
+
+      <footer class="footer">
+        <p>A new word every day at midnight UTC. Monday's are the most common, Saturday's the rarest, and Sunday's has six letters.</p>
+        <p>Word lists from SCOWL and ENABLE. <a href="credits.html">Credits</a></p>
+      </footer>
+    </main>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

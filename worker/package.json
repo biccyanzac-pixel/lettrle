@@ -1,0 +1,13 @@
+{
+  "name": "lettrle-leaderboard-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:local": "wrangler dev --local --port 8851 --var ALLOWED_ORIGINS:http://localhost:8085",
+    "db:init:local": "wrangler d1 execute words-leaderboard --local --file=schema.sql",
+    "db:init": "wrangler d1 execute words-leaderboard --remote --file=schema.sql",
+    "test": "node test/e2e.mjs http://127.0.0.1:8851",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

@@ -505,14 +505,39 @@ a { color: var(--accent); }
 .grid.small { --gap: 0.25rem; width: calc(var(--cols) * 1.6rem + (var(--cols) - 1) * var(--gap)); margin: 1rem auto 0; }
 .grid.small .tile { border-radius: 4px; border: 0; }
 
+/* Messages float over the top of the grid, like a toast: they never push the keyboard around. */
+#play { position: relative; }
 .message {
-  min-height: 1.4em;
-  margin: 0.6rem 0 0.4rem;
-  text-align: center;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--muted);
+  position: absolute;
+  z-index: 2;
+  top: 3.6rem;
+  left: 50%;
+  max-width: calc(100% - 2rem);
+  margin: 0;
+  padding: 0.6rem 1rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--text);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -4px) scale(0.98);
+  /* leaving: --jgg-t-exit; arriving (.show): --jgg-t-enter. Transitions, so a quick second message retargets. */
+  transition: opacity var(--jgg-t-exit, 160ms) ease, transform var(--jgg-t-exit, 160ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
+.message.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-duration: var(--jgg-t-enter, 220ms);
+}
+.grid:not(.small) { margin-bottom: 1rem; }
+
+.done-title { margin: 0.2rem 0 0.4rem; }
 
 .keyboard {
   display: flex;
@@ -622,6 +647,7 @@ a { color: var(--accent); }
     opacity: 0.85;
   }
   .tile, .key { transition: none; }
+  .message, .message.show { transform: translate(-50%, 0); }
 }
 
 /* Short phones: keep the grid and keyboard on one screen. */
@@ -629,3 +655,10 @@ a { color: var(--accent); }
   .grid:not(.small) { width: min(100%, calc(var(--cols) * 2.9rem + (var(--cols) - 1) * var(--gap))); }
   .key { height: 2.9rem; }
 }
+
+/* Inside a Play together room (the lobby's iframe): just the game, so the grid and keyboard fit under the lobby's
+   bar and everyone's boards. The leaderboard and archive are a tap away outside the room. */
+.in-room .masthead, .in-room #board, .in-room #archive, .in-room .footer { display: none; }
+.in-room .shell { padding-top: 0.5rem; padding-bottom: 1rem; }
+.in-room .card { padding: 1rem; }
+.in-room .card-top { margin-bottom: 0.5rem; }

@@ -117,7 +117,8 @@ function tickTimer() {
 
 const STATE_WORD = { g: 'right place', y: 'in the word', x: 'not in the word' };
 
-function renderGrid() {
+/** Draw the grid. `blank` is a row drawn with its letters but no colours yet (it's about to flip). */
+function renderGrid(blank = -1) {
   const rows = [];
   for (let r = 0; r < MAX_GUESSES; r++) {
     const word = r < g.guesses.length ? g.guesses[r] : r === g.guesses.length ? typing : '';
@@ -125,7 +126,7 @@ function renderGrid() {
     const tiles = [];
     for (let i = 0; i < p.length; i++) {
       const ch = word[i] || '';
-      const st = mk[i] || '';
+      const st = r === blank ? '' : mk[i] || '';
       tiles.push(el('div', { class: `tile${ch ? ' filled' : ''}`, 'data-state': st, role: 'gridcell',
         'aria-label': ch ? `${ch.toUpperCase()}${st ? `, ${STATE_WORD[st]}` : ''}` : 'empty' }, ch.toUpperCase()));
     }
@@ -158,20 +159,78 @@ function renderKeyboard() {
   }))));
 }
 
-function setMessage(text) { $('message').textContent = text; }
+// --- motion (jacob.gg docs/motion-system.md): the guess reveal is gameplay feedback, at most 6 times a game ------
+
+const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';      // --jgg-ease-out
+const EASE_IN_OUT = 'cubic-bezier(0.77, 0, 0.175, 1)';  // --jgg-ease-in-out: a tile turning on the spot
+const FLIP_HALF = 125, FLIP_STAGGER = 80;               // one tile 250 ms; a five-letter row 570 ms
+const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// An animation's promise, but never stuck: hidden tabs can hold animations, so give up after its own length + slack.
+const settled = (anims, ms) => Promise.race([Promise.all(anims.map((a) => a.finished)).catch(() => {}), sleep(ms + 400)]);
+
+let toastTimer = null;
+/** A short message over the grid ("Not in the word list"). Transitions, so a quick second one retargets. */
+function setMessage(text, ms = 1600) {
+  const m = $('message');
+  clearTimeout(toastTimer);
+  if (!text) { m.classList.remove('show'); return; }
+  m.textContent = text;
+  m.classList.add('show');
+  toastTimer = setTimeout(() => m.classList.remove('show'), ms);
+}
+
+/** Refused guess: the message, and the row shakes once (feedback, 240 ms). */
+function reject(text) {
+  setMessage(text);
+  const row = $('grid').children[g.guesses.length];
+  if (row?.animate && !reduced()) row.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(5px)' },
+    { transform: 'translateX(-3px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(0)' }], { duration: 240, easing: EASE_IN_OUT });
+}
+
+/** The colours arrive one tile at a time: each turns edge-on, takes its colour, and turns back. */
+function revealRow(r) {
+  const tiles = [...$('grid').children[r].children], mk = g.marks[r];
+  const paint = (t, i) => { t.dataset.state = mk[i]; t.setAttribute('aria-label', `${t.textContent}, ${STATE_WORD[mk[i]]}`); };
+  if (!tiles[0]?.animate) { tiles.forEach(paint); return Promise.resolve(); }
+  if (reduced()) { tiles.forEach(paint); return settled(tiles.map((t) => t.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 160, easing: 'ease' })), 160); }
+  const total = FLIP_HALF * 2 + FLIP_STAGGER * (tiles.length - 1);
+  return Promise.race([Promise.all(tiles.map((t, i) => {
+    const out = t.animate([{ transform: 'rotateX(0deg)' }, { transform: 'rotateX(-90deg)' }],
+      { duration: FLIP_HALF, delay: i * FLIP_STAGGER, easing: EASE_IN_OUT, fill: 'forwards' });
+    return out.finished.then(() => {
+      paint(t, i);
+      out.cancel();
+      return t.animate([{ transform: 'rotateX(-90deg)' }, { transform: 'rotateX(0deg)' }], { duration: FLIP_HALF, easing: EASE_OUT }).finished;
+    });
+  })).catch(() => {}), sleep(total + 400)]).then(() => tiles.forEach(paint));
+}
+
+/** Solved: the winning row hops, left to right. The day's one moment of delight. */
+function celebrate(r) {
+  const tiles = [...$('grid').children[r].children];
+  if (!tiles[0]?.animate || reduced()) return Promise.resolve();
+  return settled(tiles.map((t, i) => t.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-14px)', offset: 0.4 }, { transform: 'translateY(0)' }],
+    { duration: 300, delay: i * 60, easing: EASE_IN_OUT })), 300 + 60 * tiles.length);
+}
+
+const PRAISE = ['First try!', 'Brilliant', 'Superb', 'Nicely done', 'Good', 'Close one'];
+const praise = () => (solved() ? PRAISE[g.marks.length - 1] : 'Not this time');
 
 // --- input ----------------------------------------------------------------------------------------
 
+let revealing = false; // input waits while a row turns over, as in the original
+
 function press(key) {
-  if (!playing() || $('play').hidden) return;
+  if (!playing() || $('play').hidden || revealing) return;
   if (key === 'Enter') return submitGuess();
-  if (key === 'Backspace') { typing = typing.slice(0, -1); setMessage(''); return renderGrid(); }
-  if (/^[a-z]$/i.test(key) && typing.length < p.length) { typing += key.toLowerCase(); setMessage(''); renderGrid(); }
+  if (key === 'Backspace') { typing = typing.slice(0, -1); return renderGrid(); }
+  if (/^[a-z]$/i.test(key) && typing.length < p.length) { typing += key.toLowerCase(); renderGrid(); }
 }
 
-function submitGuess() {
-  if (typing.length < p.length) return setMessage(`Not enough letters: today's word has ${p.length}.`);
-  if (!isValid(typing)) return setMessage(`"${typing.toUpperCase()}" isn't in the word list.`);
+async function submitGuess() {
+  if (typing.length < p.length) return reject(`Not enough letters: today's word has ${p.length}`);
+  if (!isValid(typing)) return reject('Not in the word list');
   const word = typing;
   g.guesses.push(word);
   g.marks.push(marks(word, p.word));
@@ -179,12 +238,23 @@ function submitGuess() {
   const over = isDone();
   if (over) g.finishedAt = Date.now();
   save();
-  renderGrid();
-  renderKeyboard();
   setMessage('');
-  if (over) finish();
-  else roomProgress();
   flush();
+  const row = g.guesses.length - 1, day = mode.day;
+  if (!over) roomProgress();
+  revealing = true;
+  $('play').dataset.revealing = '';
+  renderGrid(row);
+  await revealRow(row);
+  revealing = false;
+  delete $('play').dataset.revealing;
+  if (mode.day !== day) return;
+  renderGrid();
+  renderKeyboard(); // after the reveal, so the keys don't give the colours away first
+  if (!over) return;
+  if (solved()) { await celebrate(row); setMessage(praise(), 1200); await sleep(700); }
+  else { setMessage(p.word.toUpperCase(), 2200); await sleep(1400); }
+  if (mode.day === day) finish();
 }
 
 function finish() {
@@ -267,6 +337,7 @@ function renderDoneTime() {
 function renderDone() {
   const won = solved();
   $('daily-score-caption').textContent = g.late ? `Your replay of ${mode.day}` : "Today's result";
+  $('done-title').textContent = praise();
   const sc = $('daily-score');
   sc.textContent = `${won ? g.marks.length : 'X'}/${MAX_GUESSES}`;
   sc.className = `score ${won ? 'good' : 'bad'}`;

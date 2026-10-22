@@ -22,6 +22,8 @@ const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google
 let failures = 0;
 const check = (label, ok, detail = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? '  ' + detail : ''}`); if (!ok) failures++; };
 const qs = `?api=${encodeURIComponent(API)}&hub=${encodeURIComponent(HUB)}`;
+// wait until n rows have finished turning over (input pauses during a reveal)
+const revealed = (pg, n) => pg.waitForFunction((n) => document.querySelectorAll('#grid .tile[data-state="g"], #grid .tile[data-state="y"], #grid .tile[data-state="x"]').length >= n * document.querySelector('#grid .grid-row').children.length && !document.querySelector('#play[data-revealing]'), n, { timeout: 5000 });
 const tiles = (pg, row) => pg.$$eval(`#grid .grid-row:nth-child(${row}) .tile`, (ts) => ts.map((t) => t.dataset.state).join(''));
 
 // --- phone: a full game -------------------------------------------------------------------------------
@@ -48,14 +50,23 @@ check('too short is refused', (await page.textContent('#message')).includes('Not
 // a real wrong word, on the on-screen keyboard
 for (const c of wrong[0]) await page.click(`#keyboard [data-key="${c}"]`);
 await page.click('#keyboard [data-key="Enter"]');
+await page.waitForTimeout(200);
+await shot(page, '2a-mid-flip-phone', false);
+await revealed(page, 1);
 check('guess coloured like the server would', (await tiles(page, 1)) === marks(wrong[0], word), await tiles(page, 1));
+await page.waitForFunction((k) => document.querySelector(`#keyboard [data-key="${k}"]`)?.dataset.state, wrong[0][0], { timeout: 3000 }).catch(() => {}); // keys colour in after the flip
 const keyState = await page.getAttribute(`#keyboard [data-key="${wrong[0][0]}"]`, 'data-state');
 check('keyboard shows letter colours', ['g', 'y', 'x'].includes(keyState), keyState);
 await shot(page, '2-play-phone');
 await page.waitForTimeout(MIN_MS + 300); // the worker refuses solves faster than this
 await page.keyboard.type(word);
 await page.keyboard.press('Enter');
+await page.waitForTimeout(400);
+check('the solving row turns over on the play screen first', await page.isVisible('#play') && await page.isHidden('#done'));
+await revealed(page, 2);
+check('the solved row is all green before the result screen', (await tiles(page, 2)) === 'g'.repeat(length));
 await page.waitForSelector('#done:not([hidden])');
+check('result screen praises the solve', (await page.textContent('#done-title')) === 'Brilliant');
 check('result 2/6', (await page.textContent('#daily-score')) === '2/6');
 check('word revealed at the end', (await page.textContent('#answer-reveal')).toLowerCase().includes(word));
 check('room score element = 5', (await page.textContent('#room-score')) === '5');
@@ -101,7 +112,7 @@ await frame.waitForSelector('#daynum:has-text("Lettrle #")');
 await frame.fill('#name', 'Roomie');
 await frame.click('#start');
 await frame.waitForSelector('#play:not([hidden])');
-for (const w of [wrong[1], wrong[2]]) { for (const c of w) await frame.click(`#keyboard [data-key="${c}"]`); await frame.click('#keyboard [data-key="Enter"]'); }
+for (const [i, w] of [wrong[1], wrong[2]].entries()) { for (const c of w) await frame.click(`#keyboard [data-key="${c}"]`); await frame.click('#keyboard [data-key="Enter"]'); await revealed(frame, i + 1); }
 for (const c of word) await frame.click(`#keyboard [data-key="${c}"]`);
 await frame.click('#keyboard [data-key="Enter"]');
 await frame.waitForSelector('#done:not([hidden])');
@@ -122,7 +133,7 @@ await desk.goto(SITE + qs);
 await desk.waitForSelector('#daynum:has-text("Lettrle #")');
 await shot(desk, '4-done-desktop-light', false);
 
-const ctx = await browser.newContext({ viewport: { width: 360, height: 740 } });
+const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, reducedMotion: 'reduce' }); // also covers the reduced-motion path
 await ctx.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }); });
 const blocked = await ctx.newPage();
 const blockedErrors = []; blocked.on('pageerror', (e) => blockedErrors.push(e.message));
@@ -133,6 +144,7 @@ await blocked.click('#start');
 await blocked.waitForSelector('#play:not([hidden])');
 await blocked.keyboard.type(wrong[0]);
 await blocked.keyboard.press('Enter');
+await revealed(blocked, 1);
 check('works with localStorage blocked', blockedErrors.length === 0 && (await blocked.$$eval('#grid .tile[data-state]:not([data-state=""])', (t) => t.length)) === length, blockedErrors.join(' | '));
 await shot(blocked, '5-play-phone-dark');
 

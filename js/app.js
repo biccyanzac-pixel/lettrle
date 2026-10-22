@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 const SITE = 'https://biccyanzac-pixel.github.io/lettrle/';
 const M = () => window.JGG?.motion;
 const IN_ROOM = window.parent !== window; // inside the jacob.gg/play lobby's iframe
+if (IN_ROOM) document.documentElement.classList.add('in-room'); // compact: the lobby's bar and boards sit above
 
 let mode = { day: todayKey(), archive: false };
 let p = null;        // puzzle(mode.day)

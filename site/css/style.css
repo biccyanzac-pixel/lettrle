@@ -629,3 +629,10 @@ a { color: var(--accent); }
   .grid:not(.small) { width: min(100%, calc(var(--cols) * 2.9rem + (var(--cols) - 1) * var(--gap))); }
   .key { height: 2.9rem; }
 }
+
+/* Inside a Play together room (the lobby's iframe): just the game, so the grid and keyboard fit under the lobby's
+   bar and everyone's boards. The leaderboard and archive are a tap away outside the room. */
+.in-room .masthead, .in-room #board, .in-room #archive, .in-room .footer { display: none; }
+.in-room .shell { padding-top: 0.5rem; padding-bottom: 1rem; }
+.in-room .card { padding: 1rem; }
+.in-room .card-top { margin-bottom: 0.5rem; }
